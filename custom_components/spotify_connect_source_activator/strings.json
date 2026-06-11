@@ -1,0 +1,28 @@
+{
+  "title": "Spotify Connect Source Activator",
+  "config": {
+    "abort": {
+      "already_configured": "This Spotify account is already configured.",
+      "cannot_connect": "Could not connect to Spotify: {error}",
+      "missing_configuration": "Spotify application credentials are not configured."
+    },
+    "create_entry": {
+      "default": "Authenticated with Spotify."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Spotify Connect Source Activator options",
+        "description": "The scheduler discovers local Spotify Connect devices, verifies whether Spotify Web API already lists them as sources, activates only missing supported Connect devices, then refreshes the native Spotify source list.",
+        "data": {
+          "auto_discovery_enabled": "Automatically discover and activate missing sources",
+          "scan_interval_minutes": "Discovery interval, minutes",
+          "discovery_timeout": "mDNS discovery timeout, seconds",
+          "verify_timeout": "Post-activation verification timeout, seconds",
+          "refresh_native_spotify_after_activation": "Refresh native Spotify source list after activation"
+        }
+      }
+    }
+  }
+}

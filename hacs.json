@@ -1,0 +1,6 @@
+{
+  "name": "Spotify Connect Source Activator",
+  "render_readme": true,
+  "domains": ["spotify_connect_source_activator"],
+  "homeassistant": "2026.5.0"
+}

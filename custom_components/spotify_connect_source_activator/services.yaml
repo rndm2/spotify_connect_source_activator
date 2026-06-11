@@ -1,0 +1,383 @@
+discover:
+  name: Discover Spotify Connect devices
+  description: Discover local Spotify Connect devices through ZeroConf/mDNS.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    timeout:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 60
+          mode: box
+get_info:
+  name: Get Spotify Connect ZeroConf info
+  description: Call getInfo on a local Spotify Connect device.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    host_ipv4_address:
+      required: true
+      selector:
+        text: {}
+    host_ip_port:
+      default: 8200
+      selector:
+        number:
+          min: 1
+          max: 65535
+          mode: box
+    cpath:
+      default: /zc
+      selector:
+        text: {}
+    version:
+      default: '1.0'
+      selector:
+        text: {}
+    use_ssl:
+      default: false
+      selector:
+        boolean: {}
+verify_device:
+  name: Verify Spotify available device
+  description: Resolve a local device id through getInfo and check whether Spotify
+    Web API lists it as an available device.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    host_ipv4_address:
+      required: true
+      selector:
+        text: {}
+    host_ip_port:
+      default: 8200
+      selector:
+        number:
+          min: 1
+          max: 65535
+          mode: box
+    cpath:
+      default: /zc
+      selector:
+        text: {}
+    version:
+      default: '1.0'
+      selector:
+        text: {}
+    use_ssl:
+      default: false
+      selector:
+        boolean: {}
+run_auto_cycle:
+  name: Run automatic discovery cycle now
+  description: Run the same discovery, verify, activate-missing, refresh-native-Spotify
+    cycle used by the scheduler.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+activate_device:
+  name: Activate Spotify Connect device
+  description: Activate one local Spotify Connect ZeroConf endpoint directly, verify,
+    then optionally refresh native Spotify source list.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    host_ipv4_address:
+      required: true
+      selector:
+        text: {}
+    host_ip_port:
+      default: 8200
+      selector:
+        number:
+          min: 1
+          max: 65535
+          mode: box
+    cpath:
+      default: /zc
+      selector:
+        text: {}
+    version:
+      default: '1.0'
+      selector:
+        text: {}
+    use_ssl:
+      default: false
+      selector:
+        boolean: {}
+    verify_before:
+      default: true
+      selector:
+        boolean: {}
+    verify_after:
+      default: true
+      selector:
+        boolean: {}
+    verify_timeout:
+      default: 8
+      selector:
+        number:
+          min: 0
+          max: 60
+          mode: box
+    delay:
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.1
+          mode: box
+    refresh_native_spotify:
+      default: true
+      selector:
+        boolean: {}
+    spotify_config_entry_id:
+      selector:
+        text: {}
+      required: false
+    refresh_delay:
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          mode: box
+activate_all:
+  name: Activate all discovered Spotify Connect devices
+  description: Discover local Spotify Connect ZeroConf devices, activate missing devices
+    through their advertised Connect endpoint, then optionally refresh native Spotify
+    source list.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    timeout:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 60
+          mode: box
+    verify_before:
+      default: true
+      selector:
+        boolean: {}
+    verify_after:
+      default: true
+      selector:
+        boolean: {}
+    verify_timeout:
+      default: 8
+      selector:
+        number:
+          min: 0
+          max: 60
+          mode: box
+    delay:
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.1
+          mode: box
+    refresh_native_spotify:
+      default: true
+      selector:
+        boolean: {}
+    spotify_config_entry_id:
+      selector:
+        text: {}
+      required: false
+    refresh_delay:
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          mode: box
+refresh_native_spotify:
+  name: Refresh native Spotify devices
+  description: Refresh the built-in Home Assistant Spotify device coordinator without
+    reloading the integration. This should update source_list after successful activation.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    spotify_config_entry_id:
+      selector:
+        text: {}
+      required: false
+    refresh_delay:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          mode: box
+disconnect_device:
+  name: Disconnect Spotify Connect device
+  description: Call ZeroConf disconnect on one local Spotify Connect device, optionally
+    verify that Spotify Web API no longer lists it, then optionally refresh native
+    Spotify source list.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    host_ipv4_address:
+      required: true
+      selector:
+        text: {}
+    host_ip_port:
+      default: 8200
+      selector:
+        number:
+          min: 1
+          max: 65535
+          mode: box
+    cpath:
+      default: /zc
+      selector:
+        text: {}
+    version:
+      default: '1.0'
+      selector:
+        text: {}
+    use_ssl:
+      default: false
+      selector:
+        boolean: {}
+    verify_before:
+      default: true
+      selector:
+        boolean: {}
+    verify_after:
+      default: true
+      selector:
+        boolean: {}
+    verify_timeout:
+      default: 8
+      selector:
+        number:
+          min: 0
+          max: 60
+          mode: box
+    delay:
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.1
+          mode: box
+    refresh_native_spotify:
+      default: true
+      selector:
+        boolean: {}
+    spotify_config_entry_id:
+      selector:
+        text: {}
+      required: false
+    refresh_delay:
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          mode: box
+    suspend_auto_discovery_seconds:
+      description: Temporarily suppress scheduled auto-discovery after disconnect
+        so the integration does not immediately re-add the source. Manual run_auto_cycle
+        bypasses this pause.
+      default: 120
+      selector:
+        number:
+          min: 0
+          max: 3600
+          mode: box
+disconnect_all:
+  name: Disconnect all discovered Spotify Connect devices
+  description: Discover local Spotify Connect devices, call ZeroConf disconnect on
+    each one, then optionally refresh native Spotify source list. Useful for debug
+    loops before run_auto_cycle.
+  fields:
+    config_entry_id:
+      selector:
+        text: {}
+      required: false
+    timeout:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 60
+          mode: box
+    verify_before:
+      default: true
+      selector:
+        boolean: {}
+    verify_after:
+      default: true
+      selector:
+        boolean: {}
+    verify_timeout:
+      default: 8
+      selector:
+        number:
+          min: 0
+          max: 60
+          mode: box
+    delay:
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.1
+          mode: box
+    refresh_native_spotify:
+      default: true
+      selector:
+        boolean: {}
+    spotify_config_entry_id:
+      selector:
+        text: {}
+      required: false
+    refresh_delay:
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          mode: box
+    suspend_auto_discovery_seconds:
+      description: Temporarily suppress scheduled auto-discovery after disconnect
+        so the integration does not immediately re-add the source. Manual run_auto_cycle
+        bypasses this pause.
+      default: 120
+      selector:
+        number:
+          min: 0
+          max: 3600
+          mode: box
