@@ -20,7 +20,7 @@
     "urllib3>=2.0",
     "zeroconf>=0.132.2"
   ],
-  "version": "1.4.0",
+  "version": "1.4.1",
   "loggers": [
     "custom_components.spotify_connect_source_activator",
     "spotifywebapipython"

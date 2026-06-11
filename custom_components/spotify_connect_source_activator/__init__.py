@@ -69,6 +69,7 @@ from .const import (
     DEFAULT_ZC_VERSION,
     DOMAIN,
     NATIVE_SPOTIFY_DOMAIN,
+    NAME,
     SERVICE_ACTIVATE_ALL,
     SERVICE_ACTIVATE_DEVICE,
     SERVICE_DISCONNECT_ALL,
@@ -349,6 +350,11 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    legacy_prefix = f"{NAME}: "
+    if entry.title.startswith(legacy_prefix):
+        new_title = entry.title[len(legacy_prefix):].strip() or str(entry.data.get(CONF_NAME) or entry.title)
+        hass.config_entries.async_update_entry(entry, title=new_title)
+
     implementation = await async_get_config_entry_implementation(hass, entry)
     session = OAuth2Session(hass, entry, implementation)
     await session.async_ensure_token_valid()

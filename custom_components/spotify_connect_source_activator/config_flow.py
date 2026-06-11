@@ -91,7 +91,7 @@ class SpotifyConnectSourceActivatorConfigFlow(
 
         data[CONF_ID] = user_id
         data[CONF_NAME] = display_name
-        return self.async_create_entry(title=f"{NAME}: {display_name}", data=data)
+        return self.async_create_entry(title=display_name, data=data)
 
     @staticmethod
     @callback

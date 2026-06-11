@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that makes local **Spotify Connect** devices visible to the native Home Assistant Spotify integration.
 
-It is intentionally Connect-only. It does not use Google Cast/Chromecast activation, does not import SpotifyPlus tokens, and does not store Spotify passwords.
+It is intentionally Connect-only. It only uses Spotify Connect Zeroconf discovery and the local Connect endpoint. It does not store Spotify passwords.
 
 ## How it works
 

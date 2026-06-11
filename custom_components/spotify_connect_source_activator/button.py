@@ -65,9 +65,9 @@ class SpotifyConnectActionButton(ButtonEntity):
         self._attr_name = name
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": f"{NAME}: {entry.title}",
+            "name": entry.title or NAME,
             "manufacturer": "Spotify",
-            "model": "Connect source activator",
+            "model": "Spotify Connect Source Activator",
             "sw_version": VERSION,
         }
 
