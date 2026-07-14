@@ -1095,14 +1095,12 @@ async def _async_run_auto_cycle(hass: HomeAssistant, runtime: RuntimeData, *, re
                     verified_any = verified_any or bool(activation.get("verified"))
                     results.append({"discovery": item, "action": "activate", "activation": activation})
                 except (SpotifyZeroconfApiError, SpotifyApiError, SpotifyWebApiError) as err:
-                    error_result = _zeroconf_exception_result(err)
                     _LOGGER.debug(
-                        "Skipping discovered Spotify Connect device after recoverable API error: device=%s reason=%s status=%s",
+                        "Skipping discovered Spotify Connect device after recoverable API error: device=%s error=%s",
                         _discovery_device_name(item),
-                        error_result.get("reason"),
-                        error_result.get("status"),
+                        err,
                     )
-                    results.append({"discovery": item, "action": "skipped", **error_result})
+                    results.append({"discovery": item, "action": "skipped", **_recoverable_api_error_result(err)})
                 except Exception as err:  # noqa: BLE001
                     _LOGGER.debug(
                         "Skipping discovered Spotify Connect device after unexpected auto-cycle error: device=%s error=%s",
@@ -1167,14 +1165,12 @@ async def _handle_activate_all(hass: HomeAssistant, call: ServiceCall) -> dict[s
                 verified_any = verified_any or bool(result.get("verified"))
                 results.append({"discovery": item, "activation": result})
             except (SpotifyZeroconfApiError, SpotifyApiError, SpotifyWebApiError) as err:
-                error_result = _zeroconf_exception_result(err)
                 _LOGGER.debug(
-                    "Skipping discovered Spotify Connect device after bulk activation API error: device=%s reason=%s status=%s",
+                    "Skipping discovered Spotify Connect device after bulk activation API error: device=%s error=%s",
                     _discovery_device_name(item),
-                    error_result.get("reason"),
-                    error_result.get("status"),
+                    err,
                 )
-                results.append({"discovery": item, "skipped": True, **error_result})
+                results.append({"discovery": item, "skipped": True, **_recoverable_api_error_result(err)})
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug(
                     "Skipping discovered Spotify Connect device after bulk activation error: device=%s error=%s",
@@ -1245,20 +1241,12 @@ def _is_unsupported_auto_discovery_item(item: dict[str, Any]) -> tuple[bool, str
     return False, None
 
 
-def _zeroconf_exception_result(err: Exception) -> dict[str, Any]:
-    """Convert a ZeroConf/API exception into a service-response-safe payload."""
-    status = getattr(err, "Status", None)
-    status_string = getattr(err, "StatusString", None)
-    message = str(getattr(err, "Message", err))
-    reason = "zeroconf_get_info_failed"
-    if status == 303 or "ERROR-INVALID-ARGUMENTS" in message:
-        reason = "zeroconf_invalid_arguments"
+def _recoverable_api_error_result(err: Exception) -> dict[str, Any]:
+    """Return a compact skipped-device payload for recoverable API errors."""
     return {
         "ok": False,
-        "reason": reason,
-        "status": status,
-        "status_string": status_string,
-        "error": message,
+        "reason": "zeroconf_get_info_failed",
+        "error": str(getattr(err, "Message", err)),
     }
 
 

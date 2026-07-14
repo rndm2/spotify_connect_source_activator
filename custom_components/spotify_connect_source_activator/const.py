@@ -2,7 +2,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_connect_source_activator"
 NAME = "Spotify Connect Source Activator"
-VERSION = "1.4.2"
+VERSION = "1.4.3"
 
 CONF_RELOAD_NATIVE_SPOTIFY = "refresh_native_spotify_after_activation"
 CONF_AUTO_DISCOVERY_ENABLED = "auto_discovery_enabled"
