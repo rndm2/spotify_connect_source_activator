@@ -981,6 +981,11 @@ async def _handle_disconnect_all(hass: HomeAssistant, call: ServiceCall) -> dict
         devices = await hass.async_add_executor_job(_discover_sync, runtime, timeout)
 
         for item in devices:
+            unsupported, unsupported_reason = _is_unsupported_auto_discovery_item(item)
+            if unsupported:
+                results.append({"discovery": item, "skipped": True, "reason": unsupported_reason})
+                continue
+
             params = _params_from_discovery(item)
             if params is None:
                 results.append({"discovery": item, "skipped": True, "reason": "missing_host_port_or_cpath"})
@@ -1001,8 +1006,13 @@ async def _handle_disconnect_all(hass: HomeAssistant, call: ServiceCall) -> dict
                 verified_any = verified_any or bool(result.get("verified"))
                 results.append({"discovery": item, "disconnect": result})
             except Exception as err:  # noqa: BLE001
-                _LOGGER.exception("Disconnect failed for discovered Spotify Connect device: %s", item)
-                results.append({"discovery": item, "error": str(err)})
+                _LOGGER.debug(
+                    "Skipping discovered Spotify Connect device after disconnect-all error: device=%s error=%s",
+                    _discovery_device_name(item),
+                    err,
+                    exc_info=True,
+                )
+                results.append({"discovery": item, "skipped": True, "error": str(err)})
 
     response: dict[str, Any] = {
         "count": len(results),
@@ -1052,6 +1062,11 @@ async def _async_run_auto_cycle(hass: HomeAssistant, runtime: RuntimeData, *, re
             verified_any = False
 
             for item in devices:
+                unsupported, unsupported_reason = _is_unsupported_auto_discovery_item(item)
+                if unsupported:
+                    results.append({"discovery": item, "action": "skipped", "reason": unsupported_reason})
+                    continue
+
                 params = _params_from_discovery(item)
                 if params is None:
                     results.append({"discovery": item, "action": "skipped", "reason": "missing_host_port_or_cpath"})
@@ -1079,8 +1094,22 @@ async def _async_run_auto_cycle(hass: HomeAssistant, runtime: RuntimeData, *, re
                     changed_any = changed_any or bool(activation.get("changed") and activation.get("connect_result") is not None)
                     verified_any = verified_any or bool(activation.get("verified"))
                     results.append({"discovery": item, "action": "activate", "activation": activation})
+                except (SpotifyZeroconfApiError, SpotifyApiError, SpotifyWebApiError) as err:
+                    error_result = _zeroconf_exception_result(err)
+                    _LOGGER.debug(
+                        "Skipping discovered Spotify Connect device after recoverable API error: device=%s reason=%s status=%s",
+                        _discovery_device_name(item),
+                        error_result.get("reason"),
+                        error_result.get("status"),
+                    )
+                    results.append({"discovery": item, "action": "skipped", **error_result})
                 except Exception as err:  # noqa: BLE001
-                    _LOGGER.exception("Auto activation failed for discovered Spotify Connect device: %s", item)
+                    _LOGGER.debug(
+                        "Skipping discovered Spotify Connect device after unexpected auto-cycle error: device=%s error=%s",
+                        _discovery_device_name(item),
+                        err,
+                        exc_info=True,
+                    )
                     results.append({"discovery": item, "action": "error", "error": str(err)})
 
         refresh_result = None
@@ -1115,6 +1144,11 @@ async def _handle_activate_all(hass: HomeAssistant, call: ServiceCall) -> dict[s
         await _refresh_client_token(hass, runtime)
         devices = await hass.async_add_executor_job(_discover_sync, runtime, timeout)
         for item in devices:
+            unsupported, unsupported_reason = _is_unsupported_auto_discovery_item(item)
+            if unsupported:
+                results.append({"discovery": item, "skipped": True, "reason": unsupported_reason})
+                continue
+
             params = _params_from_discovery(item)
             if params is None:
                 results.append({"discovery": item, "skipped": True, "reason": "missing_host_port_or_cpath"})
@@ -1132,9 +1166,23 @@ async def _handle_activate_all(hass: HomeAssistant, call: ServiceCall) -> dict[s
                 changed_any = changed_any or bool(result.get("changed") and result.get("connect_result") is not None)
                 verified_any = verified_any or bool(result.get("verified"))
                 results.append({"discovery": item, "activation": result})
+            except (SpotifyZeroconfApiError, SpotifyApiError, SpotifyWebApiError) as err:
+                error_result = _zeroconf_exception_result(err)
+                _LOGGER.debug(
+                    "Skipping discovered Spotify Connect device after bulk activation API error: device=%s reason=%s status=%s",
+                    _discovery_device_name(item),
+                    error_result.get("reason"),
+                    error_result.get("status"),
+                )
+                results.append({"discovery": item, "skipped": True, **error_result})
             except Exception as err:  # noqa: BLE001
-                _LOGGER.exception("Activation failed for discovered Spotify Connect device: %s", item)
-                results.append({"discovery": item, "error": str(err)})
+                _LOGGER.debug(
+                    "Skipping discovered Spotify Connect device after bulk activation error: device=%s error=%s",
+                    _discovery_device_name(item),
+                    err,
+                    exc_info=True,
+                )
+                results.append({"discovery": item, "skipped": True, "error": str(err)})
 
     response = {"count": len(results), "changed_any": changed_any, "verified_any": verified_any, "results": results}
     response["native_spotify_refresh"] = (
@@ -1175,6 +1223,45 @@ def _property_value(item: dict[str, Any], *names: str) -> Any:
     return None
 
 
+
+def _discovery_device_name(item: dict[str, Any]) -> str:
+    """Return the most useful human device name from a discovery result."""
+    value = _first_present(item, "DeviceName", "RemoteName", "Name", "Id", "Server")
+    return str(value or "")
+
+
+def _is_unsupported_auto_discovery_item(item: dict[str, Any]) -> tuple[bool, str | None]:
+    """Identify advertised services that should never be auto-activated.
+
+    Spotify Desktop can advertise a transient "Spotify Desktop Launcher"
+    _spotify-connect._tcp service on an ephemeral port.  It is not the stable
+    Connect endpoint we need to register in the native Spotify source list and
+    can return ZeroConf ERROR-INVALID-ARGUMENTS to getInfo.
+    """
+    name = _discovery_device_name(item).casefold()
+    key = str(item.get("Key") or "").casefold()
+    if "spotify desktop launcher" in name or "spotify desktop launcher" in key:
+        return True, "spotify_desktop_launcher"
+    return False, None
+
+
+def _zeroconf_exception_result(err: Exception) -> dict[str, Any]:
+    """Convert a ZeroConf/API exception into a service-response-safe payload."""
+    status = getattr(err, "Status", None)
+    status_string = getattr(err, "StatusString", None)
+    message = str(getattr(err, "Message", err))
+    reason = "zeroconf_get_info_failed"
+    if status == 303 or "ERROR-INVALID-ARGUMENTS" in message:
+        reason = "zeroconf_invalid_arguments"
+    return {
+        "ok": False,
+        "reason": reason,
+        "status": status,
+        "status_string": status_string,
+        "error": message,
+    }
+
+
 def _params_from_discovery(item: dict[str, Any]) -> dict[str, Any] | None:
     host = _first_present(item, "HostIpAddress", "HostIPv4Address", "hostIpAddress", "host_ipv4_address", "IPAddress", "IpAddress")
     port = _first_present(item, "HostIpPort", "HostPort", "Port", "port", "hostIpPort")
@@ -1185,8 +1272,12 @@ def _params_from_discovery(item: dict[str, Any]) -> dict[str, Any] | None:
     version = (
         _first_present(item, "SpotifyConnectVersion", "Version", "VERSION", "version")
         or _property_value(item, "VERSION", "Version")
-        or DEFAULT_ZC_VERSION
     )
+    if version is None:
+        # Discovery-generated endpoint strings often carry version= with an empty
+        # value. Preserve that for discovered devices instead of forcing 1.0;
+        # manual service calls still default to DEFAULT_ZC_VERSION via schema.
+        version = ""
     use_ssl = _first_present(item, "UseSSL", "UseSsl", "useSSL", "use_ssl")
     if use_ssl is None:
         add_user_endpoint = _first_present(item, "ZeroconfApiEndpointAddUser")
