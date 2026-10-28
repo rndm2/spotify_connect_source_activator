@@ -12,6 +12,8 @@ It is intentionally Connect-only. It only uses Spotify Connect Zeroconf discover
 4. If the device is missing and supports `TokenType=accesstoken`, posts `addUser` directly to the advertised Spotify Connect endpoint using the current OAuth access token.
 5. Refreshes the native Home Assistant Spotify device coordinator so the native source list updates without reloading the integration.
 
+The API client does not run the library's background Spotify Connect Directory. Local discovery uses only the explicit Connect scans above, so setup, OAuth token refresh, and reloads do not start background Cast connections.
+
 ## UI buttons
 
 The integration creates three button entities:
@@ -30,3 +32,13 @@ The integration requests broad Spotify scopes, including `user-read-playback-sta
 
 - `TokenType=default` devices usually require Spotify Connect username/password or a device password. This integration does not request those credentials and skips those devices with a diagnostic reason.
 - Disconnect services are debug tools only. Some devices reject `resetUsers` or remain cached by Spotify for a while.
+
+## Development checks
+
+Run offline lifecycle regressions in a Python environment with the integration's manifest requirements:
+
+```sh
+python -B -m unittest discover -s tests -v
+```
+
+These tests use the real Spotify client with synthetic tokens and mocked HTTP/token storage. Socket creation and background thread starts are forbidden. They cover repeated OAuth token updates, client reload cycles, Web API device verification, and explicit Connect discovery with Home Assistant's shared Zeroconf instance.
