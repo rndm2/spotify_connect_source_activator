@@ -34,6 +34,7 @@ try:
 except Exception:  # noqa: BLE001
     SpotifyZeroconfApiError = Exception  # type: ignore[misc,assignment]
 
+from .client import create_spotify_client
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
     ATTR_CPATH,
@@ -314,13 +315,7 @@ async def _start_or_stop_auto_discovery(hass: HomeAssistant, runtime: RuntimeDat
 
 
 async def _refresh_client_token(hass: HomeAssistant, runtime: RuntimeData) -> None:
-    """Refresh the HA OAuth token and only re-seed SpotifyClient when the token changed.
-
-    SetAuthTokenFromToken is not a cheap no-op in spotifywebapipython: it can restart
-    the internal Spotify Connect Directory task. Doing that before every local ZeroConf
-    operation races some devices, especially LG soundbars whose advertised port can
-    briefly refuse connections while the directory task is restarting.
-    """
+    """Refresh HA OAuth and update the API client only when the token changes."""
     await runtime.session.async_ensure_token_valid()
     token = runtime.session.token or {}
     token_key = f"{token.get('access_token')}:{token.get('expires_at')}"
@@ -386,26 +381,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return token
 
     def _make_client() -> SpotifyClient:
-        # Connect-only integration.  Keep the Spotify Connect Directory enabled,
-        # but do not depend on Spotify Connect token files or non-Connect paths.
-        # We pass the canonical login id as username for spotifywebapipython flows
-        # that require a string value; no Spotify account password is requested.
-        connect_login_id = str(entry.data.get(CONF_ID) or "")
-        connect_username = connect_login_id
-        connect_password = ""
-        client = SpotifyClient(
-            None,
-            token_storage_dir,
-            token_storage_file,
-            _token_updater,
-            zc,
-            connect_username,
-            connect_password,
-            connect_login_id,
-            2.0,
-            True,
-            None,
-            None,
+        client = create_spotify_client(
+            token_storage_dir=token_storage_dir,
+            token_storage_file=token_storage_file,
+            token_updater=_token_updater,
+            zeroconf_client=zc,
         )
         client.SetAuthTokenFromToken(getattr(implementation, "client_id", None), session.token, None)
         return client
@@ -892,9 +872,8 @@ async def _handle_disconnect_device(hass: HomeAssistant, call: ServiceCall) -> d
 
     try:
         async with runtime.operation_lock:
-            # Disconnect is a local ZeroConf operation. Do not re-seed SpotifyClient
-            # before touching the device; that can restart the library directory task
-            # and make some devices briefly refuse their advertised ZeroConf port.
+            # Disconnect is a local ZeroConf operation. Refresh OAuth only when
+            # Web API verification is requested.
             if bool(call.data.get(ATTR_VERIFY_BEFORE, False)) or bool(call.data.get(ATTR_VERIFY_AFTER, False)):
                 await _refresh_client_token(hass, runtime)
             result = await hass.async_add_executor_job(_disconnect_device_sync, runtime, dict(call.data))

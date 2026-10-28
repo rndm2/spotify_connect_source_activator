@@ -11,8 +11,7 @@ from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers import selector
 from homeassistant.components import zeroconf
 
-from spotifywebapipython import SpotifyClient
-
+from .client import create_spotify_client
 from .const import (
     DOMAIN,
     NAME,
@@ -57,19 +56,10 @@ class SpotifyConnectSourceActivatorConfigFlow(
         client_id = getattr(self.flow_impl, "client_id", None)
 
         def _build_and_profile() -> tuple[str, str]:
-            client = SpotifyClient(
-                None,
-                token_storage_dir,
-                token_storage_file,
-                None,
-                zc,
-                None,
-                None,
-                None,
-                0,
-                False,
-                None,
-                None,
+            client = create_spotify_client(
+                token_storage_dir=token_storage_dir,
+                token_storage_file=token_storage_file,
+                zeroconf_client=zc,
             )
             try:
                 client.SetAuthTokenFromToken(client_id, data["token"], None)
